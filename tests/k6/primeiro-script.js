@@ -1,22 +1,36 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
+import { SharedArray } from 'k6/data';
+import { scenario } from 'k6/execution';
+
+// 1. Load the data in the init context using a SharedArray.
+// The open() function reads the file once from the local filesystem.
+const testData = new SharedArray('users', function () {
+  // Parse the JSON data from the file
+  return JSON.parse(open('./test-data/users.json'));
+});
 
 //define quais as configuracoes do teste
 export const options = {
-  vus: 1,
-  iterations: 1,
+  vus: 50,
+  iterations: 50,
 
 };
+
 
 //os testes de fato
 export default function () {
 
-  let responseInstructorRegister = http.post(
+  // Get a specific data object for the current VU iteration.
+  // scenario.iterationInTest is a unique index for each iteration across all VUs.
+  const user = testData[scenario.iterationInTest % testData.length];
+
+  const responseInstructorRegister = http.post(
     'http://localhost:3000/instructors/register',
     JSON.stringify({
-      name: "alle",
-      email: "al@le",
-      password: "123456"
+      name: `${user.name}`,
+      email: `${user.email}`,
+      password: `${user.password}`
     }),
     {
       headers: {
@@ -29,14 +43,14 @@ export default function () {
     'status (create instructor) deve ser igual a 201': (resposta) => resposta.status === 201
   });
 
-  //console.log(responseInstructorRegister.body)
+  console.log(responseInstructorRegister.body)
   sleep(1);
 
-  let responseInstructorLogin = http.post(
+  const responseInstructorLogin = http.post(
     'http://localhost:3000/instructors/login',
     JSON.stringify({
-      email: "al@le",
-      password: "123456"
+      email: `${user.email}`,
+      password: `${user.password}`
     }),
     {
       headers: {
@@ -50,10 +64,10 @@ export default function () {
   });
 
   //console.log(responseInstructorLogin.json('token'))
-  let tokenInstructorLogin = responseInstructorLogin.json('token')
+  const tokenInstructorLogin = responseInstructorLogin.json('token')
   sleep(1);
 
-  let responseCreateLesson = http.post(
+  const responseCreateLesson = http.post(
     'http://localhost:3000/lessons',
     JSON.stringify({
       title: "IA para Testes",
@@ -73,4 +87,4 @@ export default function () {
     'status (create lesson) deve ser igual a 201': (resposta) => resposta.status === 201
   });
   sleep(1);
-}
+ }
