@@ -12,9 +12,13 @@ const testData = new SharedArray('users', function () {
 
 //define quais as configuracoes do teste
 export const options = {
-  vus: 50,
-  iterations: 50,
-
+  vus: 100,
+  duration: '10s',
+  //iterations: 10
+  thresholds: {
+    http_req_duration: ['p(90)<=50', 'p(95)<=60'], //o percentil de 90 tem que ser <= a 2 milissegundos, percentil de 95 <= 3 milissegundos
+    http_req_failed: ['rate<0.01'] //nao queremos nenhum erro
+  }
 };
 
 
